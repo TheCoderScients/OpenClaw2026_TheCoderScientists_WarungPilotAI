@@ -17,6 +17,8 @@ export async function POST(request: Request) {
       agent: "warungpilot-agent",
       summaryText: createSummary(result),
       autonomousTaskCompleted: result.reflection.autonomousTaskCompleted,
+      autonomous: result.autonomous ?? false,
+      loopTrace: result.loopTrace,
       plan: result.plan,
       paymentActions: result.paymentTasks.map((task) => ({
         customer: task.customer,

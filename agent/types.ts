@@ -23,20 +23,21 @@ export type CustomerMessage = {
 
 export type AgentPlanStep = {
   id: string;
-  agent:
-    | "Planner Agent"
-    | "Customer Intent Agent"
-    | "Order Agent"
-    | "Inventory Agent"
-    | "Finance Agent"
-    | "Payment Agent"
-    | "Approval Agent"
-    | "Reflection Agent"
-    | "Memory Agent";
+  agent: string;
   goal: string;
   tool: string;
   status: "completed" | "skipped" | "needs_owner";
   observation: string;
+};
+
+export type LoopStep = {
+  iteration: number;
+  thought: string;
+  action: string;
+  actionInput: Record<string, unknown>;
+  observation: unknown;
+  durationMs: number;
+  timestamp: string;
 };
 
 export type IntentDecision = {
@@ -135,4 +136,6 @@ export type AgentRunResult = {
     paymentTasks: number;
     approvalsWaiting: number;
   };
+  loopTrace?: LoopStep[];
+  autonomous?: boolean;
 };

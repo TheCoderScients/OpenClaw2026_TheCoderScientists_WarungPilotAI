@@ -86,6 +86,115 @@ export async function getModelAssessment(
   }
 }
 
+/* ------------------------------------------------------------------ */
+/*  Autonomous loop step — multi-turn chat for ReAct agent            */
+/* ------------------------------------------------------------------ */
+
+export async function runAgentStep({
+  systemPrompt,
+  messages,
+}: {
+  systemPrompt: string;
+  messages: Array<{ role: "user" | "assistant"; content: string }>;
+}): Promise<string | null> {
+  const config = resolveAiConfig();
+
+  if (!config || !config.baseUrl || !config.model) {
+    return null;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const response = await fetch(
+      `${config.baseUrl.replace(/\/+$/, "")}/chat/completions`,
+      {
+        body: JSON.stringify({
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...messages,
+          ],
+          model: config.model,
+          stream: false,
+          temperature: 0.1,
+          max_tokens: 500,
+        }),
+        headers: {
+          Authorization: `Bearer ${config.apiKey || "ollama"}`,
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+        signal: controller.signal,
+      },
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const text = await response.text();
+    return parseChatCompletionText(text) || null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Resolve AI config                                                 */
+/* ------------------------------------------------------------------ */
+
+function resolveAiConfig() {
+  const provider = process.env.AI_PROVIDER?.trim() || "local";
+
+  if (provider === "none" || provider === "mock") {
+    return null;
+  }
+
+  if (provider === "kiro" || provider === "9router") {
+    return {
+      apiKey:
+        process.env.KIRO_API_KEY?.trim() ||
+        process.env.NINE_ROUTER_API_KEY?.trim() ||
+        process.env.OPENAI_API_KEY?.trim() ||
+        "9router",
+      baseUrl:
+        process.env.KIRO_BASE_URL?.trim() ||
+        process.env.NINE_ROUTER_BASE_URL?.trim() ||
+        "http://127.0.0.1:20128/v1",
+      model:
+        process.env.KIRO_MODEL?.trim() ||
+        process.env.NINE_ROUTER_MODEL?.trim() ||
+        "kr/claude-sonnet-4.5",
+      provider: "kiro" as const,
+    };
+  }
+
+  if (provider === "openai") {
+    return {
+      apiKey: process.env.OPENAI_API_KEY?.trim(),
+      baseUrl: process.env.OPENAI_BASE_URL?.trim(),
+      model: process.env.OPENAI_MODEL?.trim(),
+      provider: "openai-compatible" as const,
+    };
+  }
+
+  return {
+    apiKey: process.env.LOCAL_AI_API_KEY?.trim() || "ollama",
+    baseUrl:
+      process.env.LOCAL_AI_BASE_URL?.trim() ||
+      "http://127.0.0.1:11434/v1",
+    model: process.env.LOCAL_AI_MODEL?.trim() || "qwen3:1.7b",
+    provider: "local" as const,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Chat completion request (for assessment)                          */
+/* ------------------------------------------------------------------ */
+
 async function requestChatCompletion({
   apiKey,
   baseUrl,

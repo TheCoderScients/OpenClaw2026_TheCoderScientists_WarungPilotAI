@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { getModelAssessment } from "@/agent/ai";
 import { defaultMessages, defaultStoreName } from "@/agent/data";
+import { runAutonomousLoop } from "@/agent/loop";
 import { rememberAgentRun } from "@/agent/memory";
 import {
   createApprovalTask,
@@ -20,7 +21,50 @@ import type {
   PaymentTask,
 } from "@/agent/types";
 
+/* ------------------------------------------------------------------ */
+/*  Main entry — autonomous loop first, deterministic fallback        */
+/* ------------------------------------------------------------------ */
+
 export async function runWarungPilotAgent(
+  input: Partial<AgentRunInput> = {},
+): Promise<AgentRunResult> {
+  const storeName = input.storeName?.trim() || defaultStoreName;
+  const messages = input.messages || defaultMessages;
+
+  /* Try autonomous ReAct loop */
+  try {
+    const { result } = await runAutonomousLoop({
+      messages,
+      storeName,
+      inventory: input.inventory,
+    });
+
+    /* If loop produced meaningful output, use it */
+    if (result.autonomous && result.plan.length > 2) {
+      /* Add model assessment to reflection */
+      const modelAssessment = await getModelAssessment({
+        invoices: result.invoices,
+        messages: result.messages,
+        metrics: result.metrics,
+        orders: result.orders,
+        paymentTasks: result.paymentTasks,
+      });
+      result.reflection.modelAssessment = modelAssessment;
+      return result;
+    }
+  } catch {
+    /* Autonomous loop failed — fall through to deterministic pipeline */
+  }
+
+  /* Deterministic fallback (original pipeline) */
+  return runDeterministicPipeline(input);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Deterministic pipeline (original code, used as fallback)          */
+/* ------------------------------------------------------------------ */
+
+async function runDeterministicPipeline(
   input: Partial<AgentRunInput> = {},
 ): Promise<AgentRunResult> {
   const createdAt = new Date().toISOString();
@@ -172,6 +216,7 @@ export async function runWarungPilotAgent(
       paymentTasks: paymentTasks.length,
       approvalsWaiting: approvals.length,
     },
+    autonomous: false,
   };
 
   result.memory = await rememberAgentRun(result);
@@ -192,7 +237,7 @@ export async function runWarungPilotAgent(
 
 function completeStep(
   id: string,
-  agent: AgentPlanStep["agent"],
+  agent: string,
   goal: string,
   tool: string,
   observation: string,

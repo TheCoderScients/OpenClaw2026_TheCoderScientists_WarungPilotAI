@@ -190,9 +190,22 @@ export function AgentWorkspace() {
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-300">
-            Agent trace
-          </p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-300">
+              Agent trace
+            </p>
+            {result ? (
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  result.autonomous
+                    ? "border border-amber-400/30 bg-amber-400/10 text-amber-200"
+                    : "border border-zinc-500/30 bg-zinc-500/10 text-zinc-400"
+                }`}
+              >
+                {result.autonomous ? "⚡ Autonomous Loop" : "Sequential Pipeline"}
+              </span>
+            ) : null}
+          </div>
           <div className="mt-5 space-y-3">
             {(result?.plan ?? []).map((step) => (
               <div
@@ -205,7 +218,13 @@ export function AgentWorkspace() {
                     {step.tool}
                   </span>
                 </div>
-                <p className="mt-2 text-sm text-zinc-400">{step.goal}</p>
+                {result?.autonomous ? (
+                  <p className="mt-2 text-sm italic text-amber-200/70">
+                    💭 {step.goal}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-sm text-zinc-400">{step.goal}</p>
+                )}
                 <p className="mt-2 text-sm text-zinc-200">{step.observation}</p>
               </div>
             ))}
