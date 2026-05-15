@@ -32,6 +32,7 @@ Open `http://localhost:3000`.
 ```txt
 POST /api/agent/run
 POST /api/openclaw/analyze
+POST /api/telegram/approval
 ```
 
 ## OpenClaw Skill

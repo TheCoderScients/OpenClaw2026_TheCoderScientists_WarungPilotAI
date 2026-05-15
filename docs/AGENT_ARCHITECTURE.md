@@ -38,6 +38,7 @@ approval-gated.
 - `invoice_generator`
 - `payment_task_generator`
 - `approval_gate`
+- `telegram_owner_approval`
 - `risk_reflection`
 - `ops_memory`
 
