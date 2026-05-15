@@ -99,6 +99,11 @@ export type AgentReflection = {
   autonomousTaskCompleted: string;
   decision: "ready_for_owner_approval" | "needs_clarification" | "blocked";
   rationale: string;
+  modelAssessment?: {
+    provider: "local" | "openai-compatible" | "unavailable";
+    model: string;
+    summary: string;
+  };
 };
 
 export type AgentRunInput = {
@@ -131,4 +136,3 @@ export type AgentRunResult = {
     approvalsWaiting: number;
   };
 };
-

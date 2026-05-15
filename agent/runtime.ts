@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { getModelAssessment } from "@/agent/ai";
 import { defaultMessages, defaultStoreName } from "@/agent/data";
 import { rememberAgentRun } from "@/agent/memory";
 import {
@@ -116,12 +117,28 @@ export async function runWarungPilotAgent(
     status: "needs_owner",
   });
 
-  const reflection = reflectOnRun({
+  const modelAssessment = await getModelAssessment({
     invoices,
+    messages,
+    metrics: {
+      totalMessages: messages.length,
+      validOrders: validOrders.length,
+      revenue: invoices.reduce((sum, invoice) => sum + invoice.total, 0),
+      paymentTasks: paymentTasks.length,
+      approvalsWaiting: approvals.length,
+    },
+    orders,
     paymentTasks,
-    plan,
-    validOrderCount: validOrders.length,
   });
+  const reflection = {
+    ...reflectOnRun({
+      invoices,
+      paymentTasks,
+      plan,
+      validOrderCount: validOrders.length,
+    }),
+    modelAssessment,
+  };
   plan.push(
     completeStep(
       "reflect",
@@ -233,4 +250,3 @@ function reflectOnRun({
     riskScore,
   };
 }
-

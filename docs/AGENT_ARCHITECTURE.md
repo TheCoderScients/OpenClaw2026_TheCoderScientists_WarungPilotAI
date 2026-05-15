@@ -26,6 +26,8 @@ approval-gated.
 - Payment Agent: creates payment references and reconciliation notes.
 - Approval Agent: creates owner approval tasks.
 - Reflection Agent: scores risk and missing information.
+- Optional Model Reviewer: asks Ollama/OpenAI-compatible models to review the
+  agent output when configured.
 - Memory Agent: persists run trace for auditability.
 
 ## Tools
@@ -45,4 +47,3 @@ approval-gated.
 - Payment task has amount, invoice number, reference, and approval state.
 - Customer-facing response is blocked until owner approval.
 - Run trace is stored in `.data/agent-memory.json`.
-
