@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createDokuCheckout } from "@/integrations/doku";
+import { recordDokuCheckout } from "@/integrations/doku-store";
 import type { PaymentTask } from "@/agent/types";
 
 export const runtime = "nodejs";
@@ -21,6 +22,8 @@ export async function POST(request: Request) {
   }
 
   const result = await createDokuCheckout(body.payment);
+
+  await recordDokuCheckout(body.payment, result);
 
   return NextResponse.json(result, {
     status: result.ok || result.mode === "not_configured" ? 200 : 502,
@@ -44,4 +47,3 @@ function isPaymentTask(value: unknown): value is PaymentTask {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
-

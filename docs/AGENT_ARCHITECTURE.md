@@ -38,6 +38,8 @@ approval-gated.
 - `invoice_generator`
 - `payment_task_generator`
 - `doku_checkout_creator`
+- `doku_notification_verifier`
+- `doku_status_checker`
 - `approval_gate`
 - `telegram_owner_approval`
 - `risk_reflection`

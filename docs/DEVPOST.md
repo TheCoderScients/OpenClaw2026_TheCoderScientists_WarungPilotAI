@@ -25,7 +25,8 @@ chat.
 ## Payment Use Case
 
 The Payment Agent creates payment tasks with invoice number, amount, reference
-code, channel, approval state, and reconciliation note. It also has a
-sandbox-ready DOKU Checkout adapter for QRIS and Virtual Account payment links.
-This makes the payment instruction traceable and prevents the agent from sending
-payment details before owner approval.
+code, channel, approval state, and reconciliation note. It also has a DOKU
+Checkout adapter for QRIS and Virtual Account payment links, signed webhook
+verification, local payment ledger persistence, and a backup DOKU status check
+endpoint. This makes the payment instruction traceable and prevents the agent
+from sending payment details before owner approval.

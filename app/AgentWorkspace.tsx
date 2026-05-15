@@ -13,8 +13,20 @@ type DokuCheckoutState = {
   ok: boolean;
   mode: string;
   detail: string;
+  invoiceNumber: string;
   paymentUrl?: string;
+  requestId?: string;
   tokenId?: string;
+};
+
+type DokuStatusState = {
+  ok: boolean;
+  mode: string;
+  detail: string;
+  invoiceNumber: string;
+  amount?: number;
+  requestId?: string;
+  status?: string;
 };
 
 export function AgentWorkspace() {
@@ -25,6 +37,8 @@ export function AgentWorkspace() {
   const [dokuCheckout, setDokuCheckout] = useState<DokuCheckoutState | null>(
     null,
   );
+  const [dokuStatus, setDokuStatus] = useState<DokuStatusState | null>(null);
+  const [isCheckingDoku, setIsCheckingDoku] = useState(false);
   const [error, setError] = useState("");
   const metrics = useMemo(() => result?.metrics, [result]);
 
@@ -48,6 +62,7 @@ export function AgentWorkspace() {
 
       setResult(payload.result);
       setDokuCheckout(null);
+      setDokuStatus(null);
     } catch (runError) {
       setError(runError instanceof Error ? runError.message : "Unknown error");
     } finally {
@@ -82,11 +97,44 @@ export function AgentWorkspace() {
           checkoutError instanceof Error
             ? checkoutError.message
             : "DOKU checkout request failed.",
+        invoiceNumber: payment.invoiceNumber,
         mode: "error",
         ok: false,
       });
     } finally {
       setIsCreatingDoku(false);
+    }
+  }
+
+  async function checkDokuStatus() {
+    const invoiceNumber =
+      dokuCheckout?.invoiceNumber ?? result?.paymentTasks[0]?.invoiceNumber;
+
+    if (!invoiceNumber) {
+      return;
+    }
+
+    setIsCheckingDoku(true);
+
+    try {
+      const response = await fetch(
+        `/api/payments/doku/status/${encodeURIComponent(invoiceNumber)}`,
+      );
+      const payload = (await response.json()) as DokuStatusState;
+
+      setDokuStatus(payload);
+    } catch (statusError) {
+      setDokuStatus({
+        detail:
+          statusError instanceof Error
+            ? statusError.message
+            : "DOKU status request failed.",
+        invoiceNumber,
+        mode: "error",
+        ok: false,
+      });
+    } finally {
+      setIsCheckingDoku(false);
     }
   }
 
@@ -176,14 +224,24 @@ export function AgentWorkspace() {
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-200">
                   Payment task
                 </p>
-                <button
-                  className="rounded-xl border border-emerald-300/30 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-300/10 disabled:opacity-60"
-                  disabled={isCreatingDoku || !result.paymentTasks[0]}
-                  onClick={createDokuCheckout}
-                  type="button"
-                >
-                  {isCreatingDoku ? "Creating..." : "Create DOKU Checkout"}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className="rounded-xl border border-emerald-300/30 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-300/10 disabled:opacity-60"
+                    disabled={isCreatingDoku || !result.paymentTasks[0]}
+                    onClick={createDokuCheckout}
+                    type="button"
+                  >
+                    {isCreatingDoku ? "Creating..." : "Create DOKU Checkout"}
+                  </button>
+                  <button
+                    className="rounded-xl border border-white/15 px-3 py-2 text-xs font-semibold text-zinc-100 transition hover:bg-white/10 disabled:opacity-60"
+                    disabled={isCheckingDoku || !result.paymentTasks[0]}
+                    onClick={checkDokuStatus}
+                    type="button"
+                  >
+                    {isCheckingDoku ? "Checking..." : "Check status"}
+                  </button>
+                </div>
               </div>
               <pre className="mt-4 whitespace-pre-wrap text-sm leading-6 text-zinc-100">
                 {JSON.stringify(result.paymentTasks[0] ?? {}, null, 2)}
@@ -195,6 +253,11 @@ export function AgentWorkspace() {
                     {dokuCheckout.ok ? "ready" : "not ready"}
                   </p>
                   <p className="mt-2 text-zinc-300">{dokuCheckout.detail}</p>
+                  {dokuCheckout.requestId ? (
+                    <p className="mt-2 font-mono text-xs text-zinc-500">
+                      Request: {dokuCheckout.requestId}
+                    </p>
+                  ) : null}
                   {dokuCheckout.paymentUrl ? (
                     <a
                       className="mt-3 inline-flex text-emerald-200 underline"
@@ -204,6 +267,19 @@ export function AgentWorkspace() {
                     >
                       Open DOKU payment page
                     </a>
+                  ) : null}
+                </div>
+              ) : null}
+              {dokuStatus ? (
+                <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-zinc-100">
+                  <p className="font-semibold">
+                    Payment status: {dokuStatus.status ?? "unknown"}
+                  </p>
+                  <p className="mt-2 text-zinc-300">{dokuStatus.detail}</p>
+                  {dokuStatus.requestId ? (
+                    <p className="mt-2 font-mono text-xs text-zinc-500">
+                      Status request: {dokuStatus.requestId}
+                    </p>
                   ) : null}
                 </div>
               ) : null}

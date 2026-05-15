@@ -54,6 +54,8 @@ POST /api/agent/run
 POST /api/openclaw/analyze
 POST /api/telegram/approval
 POST /api/payments/doku/checkout
+POST /api/payments/doku/notification
+GET  /api/payments/doku/status/[invoice]
 ```
 
 ## OpenClaw Skill
@@ -78,16 +80,25 @@ submission copy.
 
 ## DOKU Checkout
 
-WarungPilot AI includes a DOKU Checkout adapter for the payment use case. Keep
-`DOKU_ENV=sandbox` for judging unless production credentials are intentionally
-provided.
+WarungPilot AI includes a DOKU Checkout adapter for the payment use case. The
+flow is server-side: checkout URL creation, signed notification verification,
+payment ledger persistence, and backup status checks.
+
+Keep `DOKU_ENV=sandbox` until the sandbox simulator succeeds. Switch to
+`DOKU_ENV=production` only with real merchant credentials and a reachable public
+webhook URL.
 
 ```env
 DOKU_ENV=sandbox
 DOKU_CLIENT_ID=
 DOKU_SECRET_KEY=
 DOKU_PAYMENT_METHOD_TYPES=QRIS,VIRTUAL_ACCOUNT_BCA,VIRTUAL_ACCOUNT_DOKU
+DOKU_CALLBACK_URL=https://your-domain.com/api/payments/doku/return
+DOKU_NOTIFICATION_URL=https://your-domain.com/api/payments/doku/notification
+DOKU_WEBHOOK_VERIFY=true
 ```
 
 The Payment Agent still requires owner approval before any DOKU checkout link is
 sent to a customer.
+
+See `docs/DOKU_REAL_PAYMENT.md` for the exact DOKU setup checklist.
