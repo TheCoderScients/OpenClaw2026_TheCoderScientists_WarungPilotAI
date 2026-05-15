@@ -9,10 +9,22 @@ type AgentResponse = {
   result: AgentRunResult;
 };
 
+type DokuCheckoutState = {
+  ok: boolean;
+  mode: string;
+  detail: string;
+  paymentUrl?: string;
+  tokenId?: string;
+};
+
 export function AgentWorkspace() {
   const [messages, setMessages] = useState(defaultMessages);
   const [result, setResult] = useState<AgentRunResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [isCreatingDoku, setIsCreatingDoku] = useState(false);
+  const [dokuCheckout, setDokuCheckout] = useState<DokuCheckoutState | null>(
+    null,
+  );
   const [error, setError] = useState("");
   const metrics = useMemo(() => result?.metrics, [result]);
 
@@ -35,10 +47,46 @@ export function AgentWorkspace() {
       }
 
       setResult(payload.result);
+      setDokuCheckout(null);
     } catch (runError) {
       setError(runError instanceof Error ? runError.message : "Unknown error");
     } finally {
       setIsRunning(false);
+    }
+  }
+
+  async function createDokuCheckout() {
+    const payment = result?.paymentTasks[0];
+
+    if (!payment) {
+      return;
+    }
+
+    setIsCreatingDoku(true);
+    setDokuCheckout(null);
+
+    try {
+      const response = await fetch("/api/payments/doku/checkout", {
+        body: JSON.stringify({ payment }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const payload = (await response.json()) as DokuCheckoutState;
+
+      setDokuCheckout(payload);
+    } catch (checkoutError) {
+      setDokuCheckout({
+        detail:
+          checkoutError instanceof Error
+            ? checkoutError.message
+            : "DOKU checkout request failed.",
+        mode: "error",
+        ok: false,
+      });
+    } finally {
+      setIsCreatingDoku(false);
     }
   }
 
@@ -124,12 +172,41 @@ export function AgentWorkspace() {
         {result ? (
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-3xl border border-emerald-400/30 bg-emerald-400/[0.06] p-6">
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-200">
-                Payment task
-              </p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-200">
+                  Payment task
+                </p>
+                <button
+                  className="rounded-xl border border-emerald-300/30 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-300/10 disabled:opacity-60"
+                  disabled={isCreatingDoku || !result.paymentTasks[0]}
+                  onClick={createDokuCheckout}
+                  type="button"
+                >
+                  {isCreatingDoku ? "Creating..." : "Create DOKU Checkout"}
+                </button>
+              </div>
               <pre className="mt-4 whitespace-pre-wrap text-sm leading-6 text-zinc-100">
                 {JSON.stringify(result.paymentTasks[0] ?? {}, null, 2)}
               </pre>
+              {dokuCheckout ? (
+                <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-zinc-100">
+                  <p className="font-semibold">
+                    DOKU {dokuCheckout.mode}:{" "}
+                    {dokuCheckout.ok ? "ready" : "not ready"}
+                  </p>
+                  <p className="mt-2 text-zinc-300">{dokuCheckout.detail}</p>
+                  {dokuCheckout.paymentUrl ? (
+                    <a
+                      className="mt-3 inline-flex text-emerald-200 underline"
+                      href={dokuCheckout.paymentUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Open DOKU payment page
+                    </a>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
             <div className="rounded-3xl border border-indigo-400/30 bg-indigo-400/[0.06] p-6">
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-200">
@@ -149,4 +226,3 @@ export function AgentWorkspace() {
     </section>
   );
 }
-

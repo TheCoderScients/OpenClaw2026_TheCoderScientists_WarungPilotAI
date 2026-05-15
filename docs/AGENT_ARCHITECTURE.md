@@ -37,6 +37,7 @@ approval-gated.
 - `inventory_lookup`
 - `invoice_generator`
 - `payment_task_generator`
+- `doku_checkout_creator`
 - `approval_gate`
 - `telegram_owner_approval`
 - `risk_reflection`
