@@ -49,9 +49,7 @@ export function AgentWorkspace() {
     try {
       const response = await fetch("/api/agent/run", {
         body: JSON.stringify({ messages }),
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         method: "POST",
       });
       const payload = (await response.json()) as AgentResponse;
@@ -72,24 +70,17 @@ export function AgentWorkspace() {
 
   async function createDokuCheckout() {
     const payment = result?.paymentTasks[0];
-
-    if (!payment) {
-      return;
-    }
-
+    if (!payment) return;
     setIsCreatingDoku(true);
     setDokuCheckout(null);
 
     try {
       const response = await fetch("/api/payments/doku/checkout", {
         body: JSON.stringify({ payment }),
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         method: "POST",
       });
       const payload = (await response.json()) as DokuCheckoutState;
-
       setDokuCheckout(payload);
     } catch (checkoutError) {
       setDokuCheckout({
@@ -109,11 +100,7 @@ export function AgentWorkspace() {
   async function checkDokuStatus() {
     const invoiceNumber =
       dokuCheckout?.invoiceNumber ?? result?.paymentTasks[0]?.invoiceNumber;
-
-    if (!invoiceNumber) {
-      return;
-    }
-
+    if (!invoiceNumber) return;
     setIsCheckingDoku(true);
 
     try {
@@ -121,7 +108,6 @@ export function AgentWorkspace() {
         `/api/payments/doku/status/${encodeURIComponent(invoiceNumber)}`,
       );
       const payload = (await response.json()) as DokuStatusState;
-
       setDokuStatus(payload);
     } catch (statusError) {
       setDokuStatus({
@@ -139,198 +125,252 @@ export function AgentWorkspace() {
   }
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-      <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-300">
-              Agent input
+    <div className="grid gap-5 lg:grid-cols-[340px_1fr]">
+      {/* ── Left: Input ─────────────────────────────────────────── */}
+      <div className="flex flex-col gap-4">
+        <div className="surface p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-[12px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              Input Messages
             </p>
-            <h2 className="mt-2 text-2xl font-semibold">Customer messages</h2>
+            <span className="badge badge-muted">Demo</span>
           </div>
+          <textarea
+            className="input-area mt-3"
+            onChange={(event) => setMessages(event.target.value)}
+            value={messages}
+          />
           <button
-            className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 active:scale-95"
+            className="btn-primary mt-3 w-full"
             disabled={isRunning}
             onClick={runAgent}
             type="button"
           >
-            {isRunning ? "Running agent..." : "Run agent"}
+            {isRunning ? (
+              <>
+                <span className="inline-block h-[6px] w-[6px] rounded-full bg-current pulse-dot" />
+                Processing…
+              </>
+            ) : (
+              "▶ Run Agent"
+            )}
           </button>
+          {error ? (
+            <p className="mt-3 rounded-lg border border-red-500/20 bg-red-500/8 px-3 py-2 text-[12px] text-red-300">
+              {error}
+            </p>
+          ) : null}
         </div>
-        <textarea
-          className="mt-6 min-h-72 w-full resize-y rounded-2xl border border-white/10 bg-black/30 p-5 text-sm leading-7 text-zinc-100 outline-none transition focus:border-emerald-300/60"
-          onChange={(event) => setMessages(event.target.value)}
-          value={messages}
-        />
-        {error ? (
-          <p className="mt-4 rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-200">
-            {error}
-          </p>
-        ) : null}
-      </div>
 
-      <div className="space-y-6">
-        <div className="grid gap-3 sm:grid-cols-4">
-          {[
-            ["Messages", metrics?.totalMessages ?? 0],
-            ["Orders", metrics?.validOrders ?? 0],
-            ["Revenue", `Rp${(metrics?.revenue ?? 0).toLocaleString("id-ID")}`],
-            ["Approvals", metrics?.approvalsWaiting ?? 0],
-          ].map(([label, value]) => (
-            <div
-              className="rounded-2xl border border-white/10 bg-zinc-950/80 p-4"
-              key={label}
-            >
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                {label}
-              </p>
-              <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
+        {/* ── Metrics ──────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 gap-3">
+          {(
+            [
+              ["Messages", metrics?.totalMessages ?? "—"],
+              ["Valid Orders", metrics?.validOrders ?? "—"],
+              [
+                "Revenue",
+                metrics
+                  ? `Rp${metrics.revenue.toLocaleString("id-ID")}`
+                  : "—",
+              ],
+              ["Approvals", metrics?.approvalsWaiting ?? "—"],
+            ] as const
+          ).map(([label, value]) => (
+            <div className="metric-card" key={label}>
+              <p className="metric-label">{label}</p>
+              <p className="metric-value">{value}</p>
             </div>
           ))}
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-6">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-300">
-              Agent trace
+        {/* ── Reflection ───────────────────────────────────────── */}
+        {result ? (
+          <div className="surface p-4 animate-in">
+            <p className="text-[12px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              Reflection
             </p>
-            {result ? (
+            <div className="mt-3 flex items-center gap-2">
               <span
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                  result.autonomous
-                    ? "border border-amber-400/30 bg-amber-400/10 text-amber-200"
-                    : "border border-zinc-500/30 bg-zinc-500/10 text-zinc-400"
+                className={`badge ${
+                  result.reflection.decision === "ready_for_owner_approval"
+                    ? "badge-success"
+                    : result.reflection.decision === "blocked"
+                      ? "bg-red-500/10 text-red-400"
+                      : "badge-warn"
                 }`}
               >
-                {result.autonomous ? "⚡ Autonomous Loop" : "Sequential Pipeline"}
+                {result.reflection.decision.replace(/_/g, " ")}
+              </span>
+              <span className="text-[12px] text-[var(--text-secondary)]">
+                Risk: {result.reflection.riskScore}%
+              </span>
+            </div>
+            <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+              {result.reflection.autonomousTaskCompleted}
+            </p>
+            {result.reflection.modelAssessment ? (
+              <div className="mt-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3">
+                <p className="text-[11px] font-semibold text-[var(--text-muted)]">
+                  {result.reflection.modelAssessment.model} ·{" "}
+                  {result.reflection.modelAssessment.provider}
+                </p>
+                <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                  {result.reflection.modelAssessment.summary}
+                </p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      {/* ── Right: Agent Trace + Payment ────────────────────────── */}
+      <div className="flex flex-col gap-4">
+        {/* ── Agent trace header ──────────────────────────────── */}
+        <div className="surface p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <p className="text-[12px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Agent Trace
+              </p>
+              {result ? (
+                <span
+                  className={`badge ${result.autonomous ? "badge-accent" : "badge-muted"}`}
+                >
+                  {result.autonomous ? "⚡ Autonomous Loop" : "Sequential"}
+                </span>
+              ) : null}
+            </div>
+            {result ? (
+              <span className="text-[11px] text-[var(--text-muted)]">
+                {result.plan.length} steps
               </span>
             ) : null}
           </div>
-          <div className="mt-5 space-y-3">
-            {(result?.plan ?? []).map((step) => (
-              <div
-                className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
-                key={step.id}
-              >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <h3 className="font-semibold text-white">{step.agent}</h3>
-                  <span className="w-fit rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-200">
-                    {step.tool}
-                  </span>
-                </div>
-                {result?.autonomous ? (
-                  <p className="mt-2 text-sm italic text-amber-200/70">
-                    💭 {step.goal}
+
+          {/* ── Steps ──────────────────────────────────────────── */}
+          <div className="mt-4 flex flex-col">
+            {(result?.plan ?? []).map((step, idx) => (
+              <div key={step.id} className="animate-in" style={{ animationDelay: `${idx * 40}ms` }}>
+                {idx > 0 && <div className="step-connector" />}
+                <div className="step-card">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-[var(--accent-dim)] text-[10px] font-bold text-[var(--accent)]">
+                        {idx + 1}
+                      </span>
+                      <span className="text-[13px] font-semibold text-white">
+                        {step.agent}
+                      </span>
+                    </div>
+                    <span className="badge badge-muted shrink-0">
+                      {step.tool}
+                    </span>
+                  </div>
+                  {result?.autonomous ? (
+                    <p className="mt-1.5 text-[12px] leading-relaxed text-sky-300/70">
+                      💭 {step.goal}
+                    </p>
+                  ) : (
+                    <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--text-muted)]">
+                      {step.goal}
+                    </p>
+                  )}
+                  <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                    {step.observation}
                   </p>
-                ) : (
-                  <p className="mt-2 text-sm text-zinc-400">{step.goal}</p>
-                )}
-                <p className="mt-2 text-sm text-zinc-200">{step.observation}</p>
+                </div>
               </div>
             ))}
             {!result ? (
-              <p className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-zinc-500">
-                Run the agent to generate an auditable workflow trace.
-              </p>
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border-default)] py-12 text-center">
+                <p className="text-[13px] text-[var(--text-muted)]">
+                  Run the agent to see the autonomous workflow trace
+                </p>
+                <p className="mt-1 text-[11px] text-[var(--text-muted)] opacity-60">
+                  The LLM will reason, select tools, and loop until complete
+                </p>
+              </div>
             ) : null}
           </div>
         </div>
 
-        {result ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-3xl border border-emerald-400/30 bg-emerald-400/[0.06] p-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-200">
-                  Payment task
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    className="rounded-xl border border-emerald-300/30 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-300/10 disabled:opacity-60"
-                    disabled={isCreatingDoku || !result.paymentTasks[0]}
-                    onClick={createDokuCheckout}
-                    type="button"
-                  >
-                    {isCreatingDoku ? "Creating..." : "Create DOKU Checkout"}
-                  </button>
-                  <button
-                    className="rounded-xl border border-white/15 px-3 py-2 text-xs font-semibold text-zinc-100 transition hover:bg-white/10 disabled:opacity-60"
-                    disabled={isCheckingDoku || !result.paymentTasks[0]}
-                    onClick={checkDokuStatus}
-                    type="button"
-                  >
-                    {isCheckingDoku ? "Checking..." : "Check status"}
-                  </button>
-                </div>
+        {/* ── Payment ──────────────────────────────────────────── */}
+        {result && result.paymentTasks.length > 0 ? (
+          <div className="surface p-4 animate-in">
+            <div className="flex items-center justify-between">
+              <p className="text-[12px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Payment Task
+              </p>
+              <div className="flex gap-2">
+                <button
+                  className="btn-outline"
+                  disabled={isCreatingDoku || !result.paymentTasks[0]}
+                  onClick={createDokuCheckout}
+                  type="button"
+                >
+                  {isCreatingDoku ? "Creating…" : "DOKU Checkout"}
+                </button>
+                <button
+                  className="btn-outline"
+                  disabled={isCheckingDoku || !result.paymentTasks[0]}
+                  onClick={checkDokuStatus}
+                  type="button"
+                >
+                  {isCheckingDoku ? "Checking…" : "Status"}
+                </button>
               </div>
-              <pre className="mt-4 whitespace-pre-wrap text-sm leading-6 text-zinc-100">
-                {JSON.stringify(result.paymentTasks[0] ?? {}, null, 2)}
+            </div>
+            <div className="mt-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3">
+              <pre className="whitespace-pre-wrap text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                {JSON.stringify(result.paymentTasks[0], null, 2)}
               </pre>
-              {dokuCheckout ? (
-                <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-zinc-100">
-                  <p className="font-semibold">
-                    DOKU {dokuCheckout.mode}:{" "}
-                    {dokuCheckout.ok ? "ready" : "not ready"}
-                  </p>
-                  <p className="mt-2 text-zinc-300">{dokuCheckout.detail}</p>
-                  {dokuCheckout.requestId ? (
-                    <p className="mt-2 font-mono text-xs text-zinc-500">
-                      Request: {dokuCheckout.requestId}
-                    </p>
-                  ) : null}
-                  {dokuCheckout.paymentUrl ? (
-                    <a
-                      className="mt-3 inline-flex text-emerald-200 underline"
-                      href={dokuCheckout.paymentUrl}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      Open DOKU payment page
-                    </a>
-                  ) : null}
-                </div>
-              ) : null}
-              {dokuStatus ? (
-                <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-zinc-100">
-                  <p className="font-semibold">
-                    Payment status: {dokuStatus.status ?? "unknown"}
-                  </p>
-                  <p className="mt-2 text-zinc-300">{dokuStatus.detail}</p>
-                  {dokuStatus.requestId ? (
-                    <p className="mt-2 font-mono text-xs text-zinc-500">
-                      Status request: {dokuStatus.requestId}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
             </div>
-            <div className="rounded-3xl border border-indigo-400/30 bg-indigo-400/[0.06] p-6">
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-200">
-                Reflection
-              </p>
-              <p className="mt-4 text-sm leading-7 text-zinc-100">
-                {result.reflection.autonomousTaskCompleted}
-              </p>
-              <p className="mt-4 text-sm text-zinc-400">
-                Decision: {result.reflection.decision} | Risk:{" "}
-                {result.reflection.riskScore}
-              </p>
-              {result.reflection.modelAssessment ? (
-                <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-zinc-100">
-                  <p className="font-semibold">
-                    Model: {result.reflection.modelAssessment.model}
-                  </p>
-                  <p className="text-zinc-400">
-                    Provider: {result.reflection.modelAssessment.provider}
-                  </p>
-                  <p className="mt-2">
-                    {result.reflection.modelAssessment.summary}
-                  </p>
+            {dokuCheckout ? (
+              <div className="mt-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 animate-in">
+                <div className="flex items-center gap-2">
+                  <span className={`badge ${dokuCheckout.ok ? "badge-success" : "bg-red-500/10 text-red-400"}`}>
+                    {dokuCheckout.mode}
+                  </span>
+                  <span className="text-[12px] text-[var(--text-secondary)]">
+                    {dokuCheckout.ok ? "Ready" : "Not ready"}
+                  </span>
                 </div>
-              ) : null}
-            </div>
+                <p className="mt-2 text-[12px] text-[var(--text-secondary)]">
+                  {dokuCheckout.detail}
+                </p>
+                {dokuCheckout.requestId ? (
+                  <p className="mt-1 font-mono text-[10px] text-[var(--text-muted)]">
+                    ID: {dokuCheckout.requestId}
+                  </p>
+                ) : null}
+                {dokuCheckout.paymentUrl ? (
+                  <a
+                    className="mt-2 inline-flex text-[12px] font-semibold text-sky-400 underline underline-offset-2"
+                    href={dokuCheckout.paymentUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    Open Payment Page ↗
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
+            {dokuStatus ? (
+              <div className="mt-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 animate-in">
+                <div className="flex items-center gap-2">
+                  <span className="badge badge-muted">
+                    {dokuStatus.status ?? "unknown"}
+                  </span>
+                </div>
+                <p className="mt-2 text-[12px] text-[var(--text-secondary)]">
+                  {dokuStatus.detail}
+                </p>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
-    </section>
+    </div>
   );
 }
