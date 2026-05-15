@@ -59,7 +59,10 @@ export type DokuCheckoutResult = {
   ok: boolean;
   mode: DokuMode | "not_configured" | "error";
   detail: string;
+  effectivePaymentMethods?: string[];
   paymentUrl?: string;
+  paymentMethodNote?: string;
+  requestedPaymentMethods?: string[];
   tokenId?: string;
   expiredDate?: string;
   requestId?: string;
@@ -102,7 +105,9 @@ type DokuConfig = {
   mode: DokuMode;
   notificationUrl?: string;
   paymentDueDate: number;
+  paymentMethodNote?: string;
   paymentMethods: string[];
+  requestedPaymentMethods: string[];
   secretKey?: string;
   webhookVerify: boolean;
 };
@@ -202,14 +207,22 @@ export async function createDokuCheckout(
       detail:
         config.mode === "production"
           ? "Production DOKU Checkout payment URL created."
-          : "Sandbox DOKU Checkout payment URL created.",
+          : [
+              "Sandbox DOKU Checkout payment URL created.",
+              config.paymentMethodNote,
+            ]
+              .filter(Boolean)
+              .join(" "),
+      effectivePaymentMethods: config.paymentMethods,
       expiredDate: payload.response?.payment?.expired_date,
       invoiceNumber: payment.invoiceNumber,
       mode: config.mode,
       ok: true,
+      paymentMethodNote: config.paymentMethodNote,
       paymentUrl,
       requestId,
       responseSignatureVerified,
+      requestedPaymentMethods: config.requestedPaymentMethods,
       tokenId: payload.response?.payment?.token_id,
     };
   } catch (error) {
@@ -409,6 +422,13 @@ export function parseDokuNotification(
 export function readDokuConfig(): DokuConfig {
   const mode: DokuMode =
     process.env.DOKU_ENV?.trim() === "production" ? "production" : "sandbox";
+  const requestedPaymentMethods = parsePaymentMethods(
+    process.env.DOKU_PAYMENT_METHOD_TYPES,
+  );
+  const paymentMethodConfig = normalizePaymentMethods(
+    requestedPaymentMethods,
+    mode,
+  );
 
   return {
     autoRedirect: process.env.DOKU_AUTO_REDIRECT?.trim() === "true",
@@ -428,7 +448,9 @@ export function readDokuConfig(): DokuConfig {
       process.env.DOKU_PAYMENT_DUE_MINUTES || "60",
       10,
     ),
-    paymentMethods: parsePaymentMethods(process.env.DOKU_PAYMENT_METHOD_TYPES),
+    paymentMethodNote: paymentMethodConfig.note,
+    paymentMethods: paymentMethodConfig.effective,
+    requestedPaymentMethods,
     secretKey: process.env.DOKU_SECRET_KEY?.trim(),
     webhookVerify: process.env.DOKU_WEBHOOK_VERIFY?.trim() !== "false",
   };
@@ -552,7 +574,29 @@ function parsePaymentMethods(value: string | undefined) {
 
   return methods?.length
     ? methods
-    : ["VIRTUAL_ACCOUNT_DOKU"];
+    : ["QRIS", "VIRTUAL_ACCOUNT_DOKU"];
+}
+
+function normalizePaymentMethods(methods: string[], mode: DokuMode) {
+  if (mode === "production") {
+    return {
+      effective: methods,
+    };
+  }
+
+  const effective = methods.filter((method) => method !== "QRIS");
+
+  if (effective.length === methods.length) {
+    return {
+      effective,
+    };
+  }
+
+  return {
+    effective: effective.length ? effective : ["VIRTUAL_ACCOUNT_DOKU"],
+    note:
+      "QRIS is configured for production, but DOKU Sandbox does not support QRIS, so sandbox checkout uses Virtual Account.",
+  };
 }
 
 function createDokuTimestamp() {

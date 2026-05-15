@@ -92,7 +92,7 @@ webhook URL.
 DOKU_ENV=sandbox
 DOKU_CLIENT_ID=
 DOKU_SECRET_KEY=
-DOKU_PAYMENT_METHOD_TYPES=VIRTUAL_ACCOUNT_DOKU
+DOKU_PAYMENT_METHOD_TYPES=QRIS,VIRTUAL_ACCOUNT_DOKU
 DOKU_CALLBACK_URL=https://your-domain.com/api/payments/doku/return
 DOKU_NOTIFICATION_URL=https://your-domain.com/api/payments/doku/notification
 DOKU_WEBHOOK_VERIFY=true

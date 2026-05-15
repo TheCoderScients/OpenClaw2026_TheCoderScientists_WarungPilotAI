@@ -27,14 +27,16 @@ DOKU_CALLBACK_URL=https://your-domain.com/api/payments/doku/return
 DOKU_NOTIFICATION_URL=https://your-domain.com/api/payments/doku/notification
 
 # Payment channels shown on DOKU Checkout.
-# Sandbox-safe default. Add QRIS only in production after QRIS is active.
-DOKU_PAYMENT_METHOD_TYPES=VIRTUAL_ACCOUNT_DOKU
+# QRIS is production-ready. In sandbox, WarungPilot auto-falls back to VA
+# because DOKU Sandbox does not support QRIS.
+DOKU_PAYMENT_METHOD_TYPES=QRIS,VIRTUAL_ACCOUNT_DOKU
 DOKU_PAYMENT_DUE_MINUTES=60
 DOKU_AUTO_REDIRECT=false
 DOKU_WEBHOOK_VERIFY=true
 ```
 
-For production money, change only after the sandbox flow succeeds:
+For production money, change only after the sandbox flow succeeds and QRIS is
+active in DOKU Dashboard:
 
 ```env
 DOKU_ENV=production
