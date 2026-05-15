@@ -2,34 +2,56 @@
 
 Autonomous commerce operations agent for Indonesian SMEs.
 
-This project is built for OpenClaw Agenthon 2026. The main product is the agent:
-it reads customer chat, plans business operations, uses tools, reflects on risk,
-stores memory, and prepares owner-approved actions.
+Built for **OpenClaw Agenthon 2026**. The main product is the **autonomous
+agent**: it reads customer chat, reasons about what to do, selects tools
+dynamically, processes orders and payments, and loops until all tasks are
+complete — without manual intervention.
 
-## Core Goal
-
-Turn messy customer chats into:
-
-- structured orders
-- stock decisions
-- invoice-ready totals
-- payment requests
-- owner approval tasks
-- Telegram-ready replies
-- operational memory
-
-## Run
+## Quick Start
 
 ```powershell
 npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3000`. Click **▶ Run Agent** to execute the autonomous
+workflow.
 
-## Real AI Model
+## Autonomous Agent Loop
 
-Default judging config uses Kiro through 9Router:
+WarungPilot AI uses a **ReAct-style autonomous loop**:
+
+```
+Think → Act → Observe → repeat until done
+```
+
+The LLM receives a list of 11 available tools and customer messages. It
+**reasons** about what to do, **selects** a tool, **executes** it, **observes**
+the result, and decides the next step. The loop continues until all customers
+are processed.
+
+If AI is unavailable, the system falls back to a deterministic sequential
+pipeline — the agent always completes its task.
+
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `parse_messages` | Parse raw chat into structured messages |
+| `get_inventory` | List products, prices, and stock levels |
+| `classify_intent` | Classify customer intent (buy, ask_price, complaint, etc.) |
+| `extract_order` | Extract order lines and check stock availability |
+| `generate_invoice` | Create invoice for valid orders |
+| `create_payment_task` | Create traceable payment reference |
+| `create_doku_checkout` | Create real DOKU payment link (QRIS / Virtual Account) |
+| `create_approval_task` | Create owner approval gate |
+| `send_telegram_approval` | Send approval to owner via Telegram |
+| `reflect_on_run` | Score operational risk and missing information |
+| `save_to_memory` | Persist run trace for auditability |
+
+## AI Model
+
+Default config uses Kiro through 9Router:
 
 ```env
 AI_PROVIDER=kiro
@@ -43,19 +65,17 @@ Start 9Router before running the demo:
 .\run-kiro-router.cmd
 ```
 
-Mock/disabled AI is only a last-resort fallback. The deterministic commerce
-workflow still runs, but the Reflection Agent displays the real model assessment
-when Kiro is available.
+Ollama (`qwen3:1.7b`) and any OpenAI-compatible provider are also supported.
 
 ## Agent API
 
 ```txt
-POST /api/agent/run
-POST /api/openclaw/analyze
-POST /api/telegram/approval
-POST /api/payments/doku/checkout
-POST /api/payments/doku/notification
-GET  /api/payments/doku/status/[invoice]
+POST /api/agent/run          — Run the full autonomous agent
+POST /api/openclaw/analyze   — OpenClaw skill endpoint
+POST /api/telegram/approval  — Send approval to Telegram
+POST /api/payments/doku/checkout      — Create DOKU payment link
+POST /api/payments/doku/notification  — DOKU webhook receiver
+GET  /api/payments/doku/status/[inv]  — Check DOKU payment status
 ```
 
 ## OpenClaw Skill
@@ -70,35 +90,34 @@ Run after the dev server is active:
 node skills/warungpilot-agent/scripts/analyze.mjs --message "[Ayu] Aku mau 2 risol mayo dan 1 es kopi"
 ```
 
-## Judging Focus
+## Environment Setup
 
-WarungPilot AI is intentionally agent-first. The UI is only an operator cockpit
-to demonstrate the agent workflow and approval gate.
+Copy `.env.example` to `.env.local` and fill in credentials:
 
-See `docs/AGENT_ARCHITECTURE.md` for the agent system and `docs/DEVPOST.md` for
-submission copy.
-
-## DOKU Checkout
-
-WarungPilot AI includes a DOKU Checkout adapter for the payment use case. The
-flow is server-side: checkout URL creation, signed notification verification,
-payment ledger persistence, and backup status checks.
-
-Keep `DOKU_ENV=sandbox` until the sandbox simulator succeeds. Switch to
-`DOKU_ENV=production` only with real merchant credentials and a reachable public
-webhook URL.
-
-```env
-DOKU_ENV=sandbox
-DOKU_CLIENT_ID=
-DOKU_SECRET_KEY=
-DOKU_PAYMENT_METHOD_TYPES=QRIS,VIRTUAL_ACCOUNT_DOKU
-DOKU_CALLBACK_URL=https://your-domain.com/api/payments/doku/return
-DOKU_NOTIFICATION_URL=https://your-domain.com/api/payments/doku/notification
-DOKU_WEBHOOK_VERIFY=true
+```powershell
+copy .env.example .env.local
 ```
 
-The Payment Agent still requires owner approval before any DOKU checkout link is
-sent to a customer.
+Required for full functionality:
+- **AI**: At least one AI provider (Kiro, Ollama, or OpenAI-compatible)
+- **DOKU**: `DOKU_CLIENT_ID` and `DOKU_SECRET_KEY` for payment integration
+- **Telegram**: `TELEGRAM_BOT_TOKEN` and `TELEGRAM_OWNER_CHAT_ID` for approval
 
-See `docs/DOKU_REAL_PAYMENT.md` for the exact DOKU setup checklist.
+The agent runs without any credentials (deterministic fallback), but AI and
+integrations enhance the experience significantly.
+
+## DOKU Payment
+
+WarungPilot AI includes a real DOKU Checkout adapter for the payment use case:
+checkout URL creation, signed webhook verification, payment ledger persistence,
+and backup status checks. See `docs/DOKU_REAL_PAYMENT.md` for setup details.
+
+## Architecture
+
+See `docs/AGENT_ARCHITECTURE.md` for the full agent system documentation.
+
+## Judging Focus
+
+WarungPilot AI is intentionally **agent-first**. The UI is an operator cockpit
+to demonstrate the autonomous workflow and approval gate. The core value is the
+**ReAct agent loop** that processes commerce operations autonomously.
