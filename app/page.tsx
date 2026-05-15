@@ -1,3 +1,5 @@
+import { AgentWorkspace } from "@/app/AgentWorkspace";
+
 const demoMessages = `[Ayu] Kak, risol mayo masih ada? Aku mau 2 risol mayo dan 1 es kopi, bisa dikirim sore ini?
 [Bima] Harga risol mayo sama kopi susu berapa ya?
 [Citra] Aku mau pesan 3 brownies dan 2 es kopi untuk besok pagi.
@@ -79,7 +81,8 @@ export default function Home() {
           </ul>
         </div>
       </section>
+
+      <AgentWorkspace />
     </main>
   );
 }
-
