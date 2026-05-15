@@ -219,6 +219,19 @@ export function AgentWorkspace() {
                 Decision: {result.reflection.decision} | Risk:{" "}
                 {result.reflection.riskScore}
               </p>
+              {result.reflection.modelAssessment ? (
+                <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-zinc-100">
+                  <p className="font-semibold">
+                    Model: {result.reflection.modelAssessment.model}
+                  </p>
+                  <p className="text-zinc-400">
+                    Provider: {result.reflection.modelAssessment.provider}
+                  </p>
+                  <p className="mt-2">
+                    {result.reflection.modelAssessment.summary}
+                  </p>
+                </div>
+              ) : null}
             </div>
           </div>
         ) : null}

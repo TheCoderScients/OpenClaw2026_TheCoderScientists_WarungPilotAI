@@ -100,7 +100,7 @@ export type AgentReflection = {
   decision: "ready_for_owner_approval" | "needs_clarification" | "blocked";
   rationale: string;
   modelAssessment?: {
-    provider: "local" | "openai-compatible" | "unavailable";
+    provider: "kiro" | "local" | "openai-compatible" | "unavailable";
     model: string;
     summary: string;
   };

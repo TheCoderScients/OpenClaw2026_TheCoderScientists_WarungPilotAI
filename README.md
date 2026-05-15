@@ -27,6 +27,26 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+## Real AI Model
+
+Default judging config uses Kiro through 9Router:
+
+```env
+AI_PROVIDER=kiro
+KIRO_BASE_URL=http://127.0.0.1:20128/v1
+KIRO_MODEL=kr/claude-sonnet-4.5
+```
+
+Start 9Router before running the demo:
+
+```powershell
+.\run-kiro-router.cmd
+```
+
+Mock/disabled AI is only a last-resort fallback. The deterministic commerce
+workflow still runs, but the Reflection Agent displays the real model assessment
+when Kiro is available.
+
 ## Agent API
 
 ```txt

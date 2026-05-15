@@ -26,8 +26,8 @@ approval-gated.
 - Payment Agent: creates payment references and reconciliation notes.
 - Approval Agent: creates owner approval tasks.
 - Reflection Agent: scores risk and missing information.
-- Optional Model Reviewer: asks Ollama/OpenAI-compatible models to review the
-  agent output when configured.
+- Model Reviewer: asks Kiro through 9Router to review the agent output. Ollama
+  or OpenAI-compatible providers can be used as backup.
 - Memory Agent: persists run trace for auditability.
 
 ## Tools
@@ -49,3 +49,5 @@ approval-gated.
 - Payment task has amount, invoice number, reference, and approval state.
 - Customer-facing response is blocked until owner approval.
 - Run trace is stored in `.data/agent-memory.json`.
+- Reflection includes a real Kiro model assessment from `kr/claude-sonnet-4.5`
+  when 9Router is running.

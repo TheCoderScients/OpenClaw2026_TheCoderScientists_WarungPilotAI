@@ -14,7 +14,7 @@ export async function getModelAssessment(
     "messages" | "orders" | "invoices" | "paymentTasks" | "metrics"
   >,
 ): Promise<{
-  provider: "local" | "openai-compatible" | "unavailable";
+  provider: "kiro" | "local" | "openai-compatible" | "unavailable";
   model: string;
   summary: string;
 }> {
@@ -25,12 +25,29 @@ export async function getModelAssessment(
   }
 
   const config =
-    provider === "openai"
+    provider === "kiro" || provider === "9router"
       ? {
-          apiKey: process.env.OPENAI_API_KEY?.trim(),
-          baseUrl: process.env.OPENAI_BASE_URL?.trim(),
-          model: process.env.OPENAI_MODEL?.trim(),
-          provider: "openai-compatible" as const,
+          apiKey:
+            process.env.KIRO_API_KEY?.trim() ||
+            process.env.NINE_ROUTER_API_KEY?.trim() ||
+            process.env.OPENAI_API_KEY?.trim() ||
+            "9router",
+          baseUrl:
+            process.env.KIRO_BASE_URL?.trim() ||
+            process.env.NINE_ROUTER_BASE_URL?.trim() ||
+            "http://127.0.0.1:20128/v1",
+          model:
+            process.env.KIRO_MODEL?.trim() ||
+            process.env.NINE_ROUTER_MODEL?.trim() ||
+            "kr/claude-sonnet-4.5",
+          provider: "kiro" as const,
+        }
+      : provider === "openai"
+        ? {
+            apiKey: process.env.OPENAI_API_KEY?.trim(),
+            baseUrl: process.env.OPENAI_BASE_URL?.trim(),
+            model: process.env.OPENAI_MODEL?.trim(),
+            provider: "openai-compatible" as const,
         }
       : {
           apiKey: process.env.LOCAL_AI_API_KEY?.trim() || "ollama",
@@ -81,7 +98,7 @@ async function requestChatCompletion({
   prompt: string;
 }) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3500);
+  const timeout = setTimeout(() => controller.abort(), 15000);
 
   try {
     const response = await fetch(`${baseUrl.replace(/\/+$/, "")}/chat/completions`, {
@@ -98,6 +115,7 @@ async function requestChatCompletion({
           },
         ],
         model,
+        stream: false,
         temperature: 0.2,
       }),
       headers: {
@@ -112,11 +130,63 @@ async function requestChatCompletion({
       throw new Error(`AI model returned ${response.status}`);
     }
 
-    const payload = (await response.json()) as ChatCompletionResponse;
-    return payload.choices?.[0]?.message?.content?.trim() || "";
+    const text = await response.text();
+    return parseChatCompletionText(text);
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function parseChatCompletionText(text: string) {
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  if (trimmed.startsWith("data:")) {
+    return parseServerSentEvents(trimmed);
+  }
+
+  try {
+    const payload = JSON.parse(trimmed) as ChatCompletionResponse;
+    return payload.choices?.[0]?.message?.content?.trim() || "";
+  } catch {
+    return trimmed;
+  }
+}
+
+function parseServerSentEvents(text: string) {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice("data:".length).trim())
+    .filter((line) => line && line !== "[DONE]")
+    .map((line) => {
+      try {
+        const payload = JSON.parse(line) as {
+          choices?: Array<{
+            delta?: {
+              content?: string;
+            };
+            message?: {
+              content?: string;
+            };
+          }>;
+        };
+
+        return (
+          payload.choices?.[0]?.delta?.content ||
+          payload.choices?.[0]?.message?.content ||
+          ""
+        );
+      } catch {
+        return "";
+      }
+    })
+    .join("")
+    .trim();
 }
 
 function createAssessmentPrompt(
@@ -159,4 +229,3 @@ function unavailable(summary: string) {
     summary,
   };
 }
-
