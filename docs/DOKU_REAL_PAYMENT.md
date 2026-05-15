@@ -26,8 +26,9 @@ DOKU_SECRET_KEY=...
 DOKU_CALLBACK_URL=https://your-domain.com/api/payments/doku/return
 DOKU_NOTIFICATION_URL=https://your-domain.com/api/payments/doku/notification
 
-# Payment channels shown on DOKU Checkout
-DOKU_PAYMENT_METHOD_TYPES=QRIS,VIRTUAL_ACCOUNT_BCA,VIRTUAL_ACCOUNT_DOKU
+# Payment channels shown on DOKU Checkout.
+# Sandbox-safe default. Add QRIS only in production after QRIS is active.
+DOKU_PAYMENT_METHOD_TYPES=VIRTUAL_ACCOUNT_DOKU
 DOKU_PAYMENT_DUE_MINUTES=60
 DOKU_AUTO_REDIRECT=false
 DOKU_WEBHOOK_VERIFY=true

@@ -552,7 +552,7 @@ function parsePaymentMethods(value: string | undefined) {
 
   return methods?.length
     ? methods
-    : ["QRIS", "VIRTUAL_ACCOUNT_BCA", "VIRTUAL_ACCOUNT_DOKU"];
+    : ["VIRTUAL_ACCOUNT_DOKU"];
 }
 
 function createDokuTimestamp() {
