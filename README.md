@@ -34,8 +34,22 @@ POST /api/agent/run
 POST /api/openclaw/analyze
 ```
 
+## OpenClaw Skill
+
+```txt
+skills/warungpilot-agent/SKILL.md
+```
+
+Run after the dev server is active:
+
+```powershell
+node skills/warungpilot-agent/scripts/analyze.mjs --message "[Ayu] Aku mau 2 risol mayo dan 1 es kopi"
+```
+
 ## Judging Focus
 
 WarungPilot AI is intentionally agent-first. The UI is only an operator cockpit
 to demonstrate the agent workflow and approval gate.
 
+See `docs/AGENT_ARCHITECTURE.md` for the agent system and `docs/DEVPOST.md` for
+submission copy.
